@@ -27,6 +27,9 @@ namespace PinFilters {
 
 		public bool allPinsHidden;
 		private KeyCode toggleKey = KeyCode.F7;
+
+		private Sprite filterSprite;
+		private Sprite checkedSprite;
 		private static Color visibleColor = Color.white;
 		private static Color hiddenColor = Color.gray;
 
@@ -48,6 +51,10 @@ namespace PinFilters {
 			isTypeVisible = new Dictionary<Minimap.PinType, bool>();
 
 			Minimap minimap = Minimap.instance;
+			var temporaryPinPrefab = Instantiate<GameObject>(minimap.m_pinPrefab);
+			checkedSprite = temporaryPinPrefab.transform.Find("Checked").gameObject.GetComponent<Image>().sprite;
+			Destroy(temporaryPinPrefab);
+			filterSprite = minimap.m_icons.Find(x => x.m_name == Minimap.PinType.Icon3).m_icon;
 			SetUpFilter(minimap.m_selectedIcon0, Minimap.PinType.Icon0);
 			SetUpFilter(minimap.m_selectedIcon1, Minimap.PinType.Icon1);
 			SetUpFilter(minimap.m_selectedIcon2, Minimap.PinType.Icon2);
@@ -64,15 +71,22 @@ namespace PinFilters {
 
 			var innerElement = new GameObject($"{pinType.ToString()} filter inner element");
 			var image = innerElement.AddComponent<Image>();
-			image.color = visibleColor;
+			image.sprite = filterSprite;
 			innerElement.transform.SetParent(buttonGameObject.transform);
-			innerElement.transform.localScale = Vector3.one * 0.25f;
+			innerElement.transform.localScale = Vector3.one * 0.5f;
 
-			buttonGameObject.transform.position = sourceImage.rectTransform.position - new Vector3(60, 0);
+			var checkElement = new GameObject($"{pinType.ToString()} filter checkmark");
+			var checkImage = checkElement.AddComponent<Image>();
+			checkImage.sprite = checkedSprite;
+			checkElement.transform.SetParent(buttonGameObject.transform);
+			checkElement.transform.localScale = Vector3.one * 0.5f;
+			checkImage.gameObject.SetActive(false);
+
+			buttonGameObject.transform.position = sourceImage.rectTransform.position - new Vector3(45, 0);
 
 			button.onClick.AddListener(() => {
 				isTypeVisible[pinType] = !isTypeVisible[pinType];
-				image.color = isTypeVisible[pinType] ? visibleColor : hiddenColor;
+				checkImage.gameObject.SetActive(!isTypeVisible[pinType]);
 			});
 
 			isTypeVisible[pinType] = true;

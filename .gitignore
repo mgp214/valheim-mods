@@ -1,0 +1,5 @@
+**/obj
+**/bin
+valheim-mods/.vscode/
+valheim-mods/.vs/
+valheim-mods/*/Plugin.cs

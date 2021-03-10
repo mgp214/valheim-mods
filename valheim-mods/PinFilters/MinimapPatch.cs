@@ -38,8 +38,14 @@ namespace PinFilters {
 				}
 				if (!PinFilterManager.Instance.IsPinTypeVisible(pin.m_type)) {
 					if (pin.m_uiElement == null) continue;
-					UnityEngine.Object.Destroy(pin.m_uiElement.gameObject);
-					pin.m_uiElement = null;
+					if (pin.m_uiElement.gameObject.activeSelf) {
+						pin.m_uiElement.gameObject.SetActive(false);
+					}
+				} else {
+					if (pin.m_uiElement == null) continue;
+					if (!pin.m_uiElement.gameObject.activeSelf) {
+						pin.m_uiElement.gameObject.SetActive(true);
+					}
 				}
 			}
 		}
