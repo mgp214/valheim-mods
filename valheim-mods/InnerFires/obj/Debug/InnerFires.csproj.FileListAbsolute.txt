@@ -1,0 +1,12 @@
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\bin\Debug\InnerFires.dll
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\bin\Debug\InnerFires.pdb
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\bin\Debug\0Harmony.dll
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\bin\Debug\assembly_valheim.dll
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\bin\Debug\BepInEx.dll
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\bin\Debug\UnityEngine.CoreModule.dll
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\bin\Debug\UnityEngine.dll
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\obj\Debug\InnerFires.csprojAssemblyReference.cache
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\obj\Debug\InnerFires.csproj.CoreCompileInputs.cache
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\obj\Debug\InnerFires.csproj.CopyComplete
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\obj\Debug\InnerFires.dll
+E:\code\valheim\torch_duration\ClassLibrary1\InnerFires\obj\Debug\InnerFires.pdb
