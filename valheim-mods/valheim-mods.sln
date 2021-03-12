@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PinFilters", "PinFilters\Pi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExtendedExploreRadius", "ExtendedExploreRadius\ExtendedExploreRadius.csproj", "{137106D0-893A-4636-BA43-07B93C7F06D5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cartographer", "Cartographer\Cartographer.csproj", "{729CB620-F52B-42E5-B790-D893D0185694}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{137106D0-893A-4636-BA43-07B93C7F06D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{137106D0-893A-4636-BA43-07B93C7F06D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{137106D0-893A-4636-BA43-07B93C7F06D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{729CB620-F52B-42E5-B790-D893D0185694}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{729CB620-F52B-42E5-B790-D893D0185694}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{729CB620-F52B-42E5-B790-D893D0185694}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{729CB620-F52B-42E5-B790-D893D0185694}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

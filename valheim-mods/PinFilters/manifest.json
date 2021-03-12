@@ -1,0 +1,9 @@
+{
+	"name": "PinFilters",
+	"version_number": "1.2.0",
+	"website_url": "https://www.nexusmods.com/valheim/mods/412",
+	"description": "Allows you to toggle visibility of map pins by type/icon.",
+	"dependencies": [
+		"denikson-BepInExPack_Valheim-5.4.800"
+	]
+}

@@ -26,13 +26,10 @@ namespace PinFilters {
 		private Dictionary<Minimap.PinType, bool> isTypeVisible;
 
 		public bool allPinsHidden;
-		private KeyCode toggleKey = KeyCode.F7;
+		public KeyCode toggleKey = KeyCode.None;
 
 		private Sprite filterSprite;
 		private Sprite checkedSprite;
-		private static Color visibleColor = Color.white;
-		private static Color hiddenColor = Color.gray;
-
 		private bool CanFilterPinType(Minimap.PinType type) => isTypeVisible.ContainsKey(type);
 
 		public bool IsPinTypeVisible(Minimap.PinType pinType) {
@@ -47,6 +44,7 @@ namespace PinFilters {
 		}
 
 		private void Initialize() {
+			toggleKey = Plugin.toggleKeyCode;
 			allPinsHidden = true;
 			isTypeVisible = new Dictionary<Minimap.PinType, bool>();
 
@@ -80,7 +78,7 @@ namespace PinFilters {
 			checkImage.sprite = checkedSprite;
 			checkElement.transform.SetParent(buttonGameObject.transform);
 			checkElement.transform.localScale = Vector3.one * 0.5f;
-			checkImage.gameObject.SetActive(false);
+			checkElement.SetActive(false);
 
 			buttonGameObject.transform.position = sourceImage.rectTransform.position - new Vector3(45, 0);
 
@@ -90,7 +88,6 @@ namespace PinFilters {
 			});
 
 			isTypeVisible[pinType] = true;
-
 		}
 	}
 }
