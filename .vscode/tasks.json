@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build",
+			"command": "python ${workspaceFolder}\\valheim-mods\\Cartographer\\build\\incrementversion.py; dotnet build ${workspaceFolder}\\valheim-mods\\Cartographer\\Cartographer.csproj /property:GenerateFullPaths=true /consoleloggerparameters:NoSummary",
+			"type": "shell",
+			"args": [],
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}

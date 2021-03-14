@@ -6,22 +6,25 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using static Cartographer.DataSerializer;
 
 namespace Cartographer {
 
 	[HarmonyPatch(typeof(Minimap))]
 	class MinimapPatch {
 
-		private static bool isDrawing = false;
-		private static bool drawingIsEnabled = false;
-		private static Color unmask = new Color(0, 0, 0, 0);
+		private static bool isSketching = false;
+		private static bool sketchingIsEnabled = false;
+		private static Color unmask = Color.clear;
 		private static Color neutralHeight = new Color(31f, 0, 0);
 		private static Color mask = Color.white;
-		private static Color drawColor = Color.red;
-		private static float radius = 10f;
+		private static Color sketchColor = Color.red;
+		private static float radius = 15f;
 		private static float fogInset = 5f;
-
 		private static bool hasBackedUpTextures = false;
+
+		private static Color[] sketchData;
+		private static Color[] maskData;
 
 		private static Dictionary<Texture2D, Texture2D> backupTextures;
 
@@ -57,39 +60,62 @@ namespace Cartographer {
 		[HarmonyPatch("Update")]
 		public static void UpdatePostfix(Minimap __instance, Texture2D ___m_mapTexture, Texture2D ___m_fogTexture, Texture2D ___m_forestMaskTexture, Texture2D ___m_heightTexture, bool[] ___m_explored) {
 			if (!hasBackedUpTextures) {
+				Plugin.Log.LogInfo("initializing cartographer");
 				backupTextures[___m_mapTexture] = CopyTexture(___m_mapTexture, TextureFormat.RGBA32);
 				backupTextures[___m_forestMaskTexture] = CopyTexture(___m_forestMaskTexture, TextureFormat.RGBA32);
 				backupTextures[___m_heightTexture] = CopyTexture(___m_heightTexture, TextureFormat.RFloat);
 				hasBackedUpTextures = true;
+				LoadMapData(___m_mapTexture, ___m_fogTexture, ___m_heightTexture, ___m_forestMaskTexture, ___m_explored);
 			}
 			if (Input.GetKeyDown(KeyCode.P)) {
-				drawingIsEnabled = !drawingIsEnabled;
-				Debug.Log("drawingIsEnabled toggled, new value: " + drawingIsEnabled);
+				sketchingIsEnabled = !sketchingIsEnabled;
+				Plugin.Log.LogDebug("SketchingIsEnabled toggled, new value: " + sketchingIsEnabled);
 			}
-			if (isDrawing) {
+
+			if (Input.GetKeyDown(KeyCode.N)) {
+				radius++;
+				Plugin.Log.LogDebug("radius: " + radius);
+			}
+			if (Input.GetKeyDown(KeyCode.B)) {
+				radius--;
+				Plugin.Log.LogDebug("radius: " + radius);
+			}
+
+			if (Input.GetKeyDown(KeyCode.H)) {
+				fogInset++;
+				Plugin.Log.LogDebug("fogInset: " + fogInset);
+			}
+			if (Input.GetKeyDown(KeyCode.G)) {
+				fogInset--;
+				Plugin.Log.LogDebug("fogInset: " + fogInset);
+			}
+
+
+			if (isSketching) {
 				var pos = ScreenToWorldPoint(__instance, Input.mousePosition);
 				WorldToPixel(__instance, pos, out int x, out int y);
 				var fogRadius = Mathf.Clamp(radius - fogInset, 1, 500);
-				// Debug.Log($"drawing position {pos}, r: {radius}, fog: {fogRadius}");
+				Plugin.Log.LogDebug($"sketching with r: {radius} & fog r: {fogRadius}");
 				if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) {
-					EraseRadius(x, y, radius, ___m_mapTexture, backupTextures[___m_mapTexture]);
-					EraseRadius(x, y, radius, ___m_forestMaskTexture, backupTextures[___m_forestMaskTexture]);
+					Erase(x, y, radius, ___m_mapTexture, backupTextures[___m_mapTexture]);
+					Erase(x, y, radius, ___m_forestMaskTexture, backupTextures[___m_forestMaskTexture]);
 					Reexplore(x, y, fogRadius, ___m_explored, ___m_fogTexture);
-					EraseRadius(x, y, radius, ___m_heightTexture, backupTextures[___m_heightTexture]);
+					Erase(x, y, radius, ___m_heightTexture, backupTextures[___m_heightTexture]);
 				} else {
-					DrawRadius(x, y, radius, ___m_mapTexture, drawColor);
-					DrawRadius(x, y, radius, ___m_forestMaskTexture, unmask);
-					DrawRadius(x, y, fogRadius, ___m_fogTexture, unmask);
-					DrawRadius(x, y, radius, ___m_heightTexture, neutralHeight);
+					Sketch(x, y, radius, ___m_mapTexture, sketchColor, sketchData);
+					Sketch(x, y, radius, ___m_forestMaskTexture, unmask);
+					Sketch(x, y, fogRadius, ___m_fogTexture, unmask, maskData);
+					Sketch(x, y, radius, ___m_heightTexture, neutralHeight);
 				}
 			}
 		}
-		private static void EraseRadius(int x, int y, float radius, Texture2D texture, Texture2D backupTexture) {
+		private static void Erase(int x, int y, float radius, Texture2D texture, Texture2D backupTexture) {
 			int r = (int)Mathf.Ceil(radius / Minimap.instance.m_pixelSize);
 			for (int i = y - r; i <= y + r; i++) {
 				for (int j = x - r; j <= x + r; j++) {
 					if (j >= 0 && i >= 0 && j < Minimap.instance.m_textureSize && i < Minimap.instance.m_textureSize && new Vector2((float)(j - x), (float)(i - y)).magnitude <= (float)r) {
 						texture.SetPixel(j, i, backupTexture.GetPixel(j, i));
+						sketchData[i * Minimap.instance.m_textureSize + j] = Color.clear;
 					}
 				}
 			}
@@ -104,6 +130,7 @@ namespace Cartographer {
 						var isExplored = j >= 0 && j < Minimap.instance.m_textureSize && i >= 0 && j < Minimap.instance.m_textureSize && explored[i * Minimap.instance.m_textureSize + j];
 						if (!isExplored) {
 							fogTexture.SetPixel(j, i, mask);
+							maskData[i * Minimap.instance.m_textureSize + j] = mask;
 						}
 					}
 				}
@@ -111,12 +138,15 @@ namespace Cartographer {
 			fogTexture.Apply();
 		}
 
-		private static void DrawRadius(int x, int y, float radius, Texture2D texture, Color color) {
+		private static void Sketch(int x, int y, float radius, Texture2D texture, Color color, Color[] saveTo = null) {
 			int r = (int)Mathf.Ceil(radius / Minimap.instance.m_pixelSize);
 			for (int i = y - r; i <= y + r; i++) {
 				for (int j = x - r; j <= x + r; j++) {
 					if (j >= 0 && i >= 0 && j < Minimap.instance.m_textureSize && i < Minimap.instance.m_textureSize && new Vector2((float)(j - x), (float)(i - y)).magnitude <= (float)r) {
 						texture.SetPixel(j, i, color);
+						if (saveTo != null) {
+							saveTo[i * Minimap.instance.m_textureSize + j] = color;
+						}
 					}
 				}
 			}
@@ -125,22 +155,67 @@ namespace Cartographer {
 
 
 		[HarmonyPrefix]
-		[HarmonyPatch("OnMapMiddleClick")]
-		public static bool OnMapMiddleClickPrefix(Minimap __instance) {
-			if (drawingIsEnabled) return true;
+		[HarmonyPatch("OnMapRightClick")]
+		public static bool OnMapRightClickPrefix(Minimap __instance) {
+			if (sketchingIsEnabled) return true;
 			return false;
 		}
 
+		[HarmonyPostfix]
+		[HarmonyPatch("SaveMapData")]
+		public static void SaveMapDataPrefix(Minimap __instance) {
+			try {
+				DataSerializer.Save(sketchData, DataType.Sketch);
+				DataSerializer.Save(maskData, DataType.Mask);
+			} catch (Exception e) {
+				Plugin.Log.LogError("Couldn't save cartographer data for this world.");
+				Plugin.Log.LogDebug(e);
+			}
+		}
+
+		public static void LoadMapData(Texture2D mapTexture, Texture2D fogTexture, Texture2D heightTexture, Texture2D forestTexture, bool[] explored) {
+			var expectedSize = Minimap.instance.m_textureSize * Minimap.instance.m_textureSize;
+			Plugin.Log.LogInfo("loading cartographer sketch data");
+			try {
+				sketchData = DataSerializer.Load(DataType.Sketch);
+				maskData = DataSerializer.Load(DataType.Mask);
+				Plugin.Log.LogDebug("loaded image file");
+				int changedPixels = 0;
+				for (var i = 0; i < expectedSize; i++) {
+					if (sketchData[i].a != 0) {
+						var x = i % Minimap.instance.m_textureSize;
+						var y = (int)(i / Minimap.instance.m_textureSize);
+						mapTexture.SetPixel(x, y, sketchData[i]);
+						fogTexture.SetPixel(x, y, maskData[i]);
+						forestTexture.SetPixel(x, y, unmask);
+						heightTexture.SetPixel(x, y, neutralHeight);
+						changedPixels++;
+					}
+				}
+				mapTexture.Apply();
+				fogTexture.Apply();
+				forestTexture.Apply();
+				heightTexture.Apply();
+				Plugin.Log.LogDebug($"applied {changedPixels} sketch pixels to world map");
+			} catch (Exception e) {
+				Plugin.Log.LogWarning("Couldn't load cartographer data for this world. It might just not have been generated yet.");
+				Plugin.Log.LogDebug(e);
+				sketchData = new Color[expectedSize];
+				maskData = new Color[expectedSize];
+			}
+		}
+
+
 		public static void OnMapRightUp(UIInputHandler handler) {
-			if (!drawingIsEnabled) return;
-			Debug.Log("stop drawing.");
-			isDrawing = false;
+			if (!sketchingIsEnabled) return;
+			Plugin.Log.LogDebug("stop sketch stroke.");
+			isSketching = false;
 		}
 
 		public static void OnMapRightDown(UIInputHandler handler) {
-			if (!drawingIsEnabled) return;
-			Debug.Log("start drawing.");
-			isDrawing = true;
+			if (!sketchingIsEnabled) return;
+			Plugin.Log.LogDebug("start sketch stroke.");
+			isSketching = true;
 		}
 
 		private static Texture2D CopyTexture(Texture2D source, TextureFormat format) {
