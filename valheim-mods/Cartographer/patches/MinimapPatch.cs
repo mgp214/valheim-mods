@@ -5,8 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.UI;
 using static Cartographer.DataSerializer;
+using UnityEngine.UI;
 
 namespace Cartographer {
 
@@ -23,14 +23,16 @@ namespace Cartographer {
 		private static float fogInset = 5f;
 		private static bool hasBackedUpTextures = false;
 
-		private static SketchToggleComponent sketchToggle;
-		private static SketchPanelComponent sketchPanel;
-		private static TextInputComponent fogInsetInput;
-		private static TextInputComponent radiusInput;
+		// private static SketchToggleComponent sketchToggle;
+		// // private static SketchPanelComponent sketchPanel;
+		// private static TextInputComponent fogInsetInput;
+		// private static TextInputComponent radiusInput;
+		private static RectTransform sizeSliderRect;
 		private static Color[] sketchData;
 		private static Color[] maskData;
 
 		private static Dictionary<Texture2D, Texture2D> backupTextures;
+		private static RectTransform panelRect;
 
 		[HarmonyReversePatch]
 		[HarmonyPatch(typeof(Minimap), "ScreenToWorldPoint")]
@@ -59,25 +61,126 @@ namespace Cartographer {
 
 			backupTextures = new Dictionary<Texture2D, Texture2D>();
 
-			sketchPanel = SketchPanelComponent.New(__instance.m_pinRootLarge);
-			sketchToggle = SketchToggleComponent.New(sketchPanel.rectTransform);
-			sketchToggle = SketchToggleComponent.New(sketchPanel.rectTransform);
-			fogInsetInput = TextInputComponent.New(sketchPanel.rectTransform);
-			fogInsetInput.inputField.text = fogInset.ToString();
-			fogInsetInput.onValueChanged += (value) => {
-				if (float.TryParse(value, out float result)) {
-					fogInset = Mathf.Clamp(result, radius + 1, 500);
-					Plugin.Log.LogDebug($"fogInset changed to {result}");
-				}
-			};
-			radiusInput = TextInputComponent.New(sketchPanel.rectTransform);
-			radiusInput.inputField.text = radius.ToString();
-			radiusInput.onValueChanged += (value) => {
-				if (float.TryParse(value, out float result)) {
-					radius = Mathf.Clamp(result, 1, 500);
-					Plugin.Log.LogDebug($"radius changed to {result}");
-				}
-			};
+			// sketchPanel = SketchPanelComponent.New(__instance.m_pinRootLarge);
+			// sketchToggle = SketchToggleComponent.New(sketchPanel.rectTransform);
+			// sketchToggle = SketchToggleComponent.New(sketchPanel.rectTransform);
+			// fogInsetInput = TextInputComponent.New(sketchPanel.rectTransform);
+			// fogInsetInput.inputField.text = fogInset.ToString();
+			// fogInsetInput.onValueChanged += (value) => {
+			// 	if (float.TryParse(value, out float result)) {
+			// 		fogInset = Mathf.Clamp(result, radius + 1, 500);
+			// 		Plugin.Log.LogDebug($"fogInset changed to {result}");
+			// 	}
+			// };
+			// // radiusInput = TextInputComponent.New(sketchPanel.rectTransform);
+			// radiusInput.inputField.text = radius.ToString();
+			// radiusInput.onValueChanged += (value) => {
+			// 	if (float.TryParse(value, out float result)) {
+			// 		radius = Mathf.Clamp(result, 1, 500);
+			// 		Plugin.Log.LogDebug($"radius changed to {result}");
+			// 	}
+			// };
+
+			var font = Minimap.instance.m_biomeNameLarge.font;
+			var fontSize = Minimap.instance.m_biomeNameLarge.fontSize;
+			var fontStyle = Minimap.instance.m_biomeNameLarge.fontStyle;
+
+			var panel = new GameObject("sketch panel");
+			panelRect = panel.AddComponent<RectTransform>();
+			var panelImg = panel.AddComponent<Image>();
+			var panelVlg = panel.AddComponent<VerticalLayoutGroup>();
+			panelRect.SetParent(Minimap.instance.m_mapImageLarge.rectTransform, false);
+
+			panelRect.anchorMax = new Vector2(1, 0.5f);
+			panelRect.anchorMin = new Vector2(1, 0.5f);
+			panelRect.pivot = new Vector2(1, 0.5f);
+			panelRect.offsetMin = new Vector2(-100, -100);
+			panelRect.offsetMax = new Vector2(0, 100);
+
+			panelImg.color = new Color(0.33f, 0.33f, 0.33f, 0.33f);
+
+			panelVlg.padding = new RectOffset(5, 5, 5, 5);
+			panelVlg.spacing = 5f;
+			panelVlg.childAlignment = TextAnchor.UpperLeft;
+			panelVlg.childControlHeight = false;
+			panelVlg.childControlWidth = true;
+			panelVlg.childForceExpandHeight = false;
+			panelVlg.childForceExpandWidth = true;
+
+			var sketchEnableObj = new GameObject();
+			var sketchEnableBtn = sketchEnableObj.AddComponent<Button>();
+			var sketchEnableRect = sketchEnableObj.AddComponent<RectTransform>();
+			// sketchEnableRect.offsetMin = new Vector2(sketchEnableRect.offsetMin.x, -20);
+			// sketchEnableRect.offsetMax = new Vector2(sketchEnableRect.offsetMax.x, 20);
+			sketchEnableRect.SetParent(panelRect, false);
+			var sketchEnableTxtObj = new GameObject();
+			var sketchEnableTxt = sketchEnableTxtObj.AddComponent<Text>();
+			sketchEnableTxt.rectTransform.SetParent(sketchEnableRect, false);
+			sketchEnableTxt.rectTransform.anchorMin = Vector2.zero;
+			sketchEnableTxt.rectTransform.anchorMax = Vector2.one;
+			sketchEnableTxt.rectTransform.pivot = Vector2.one * 0.5f;
+			sketchEnableTxt.font = font;
+			sketchEnableTxt.fontSize = fontSize;
+			sketchEnableTxt.fontStyle = fontStyle;
+			sketchEnableTxt.text = "Sketch";
+			sketchEnableTxt.alignment = TextAnchor.UpperLeft;
+			sketchEnableTxt.color = Color.gray;
+			// sketchEnableTxt.resizeTextForBestFit = true;
+			sketchEnableTxt.color = Color.gray;
+			sketchEnableBtn.onClick.AddListener(() => {
+				sketchingIsEnabled = !sketchingIsEnabled;
+				Plugin.Log.LogDebug("toggling sketchingIsEnabled: " + sketchingIsEnabled);
+				sketchEnableTxt.text = sketchingIsEnabled ? "Sketching" : "Sketch";
+				sketchEnableTxt.color = sketchingIsEnabled ? Color.white : Color.gray;
+			});
+			Debug.Log("sizeSliderObj");
+			var sizeSliderObj = new GameObject();
+			var sizeSliderSlider = sizeSliderObj.AddComponent<Slider>();
+			sizeSliderRect = sizeSliderObj.GetComponent<RectTransform>();
+
+			Debug.Log("sizeSliderFillObj");
+			var sizeSliderFillObj = new GameObject();
+			var sizeSliderFillRect = sizeSliderFillObj.AddComponent<RectTransform>();
+			sizeSliderFillRect.anchorMax = new Vector2(1, 0.75f);
+			sizeSliderFillRect.anchorMin = new Vector2(0, 0.25f);
+			sizeSliderFillRect.pivot = new Vector2(0.5f, 0.5f);
+			sizeSliderFillRect.offsetMin = new Vector2(5, 0);
+			sizeSliderFillRect.offsetMax = new Vector2(5, 0);
+			var sizeSliderFillImg = sizeSliderFillObj.AddComponent<Image>();
+			sizeSliderFillImg.color = Color.gray;
+
+			sizeSliderFillRect.SetParent(sizeSliderRect, false);
+			sizeSliderSlider.fillRect = sizeSliderFillRect;
+			var sizeSliderSlideArealObj = new GameObject();
+			var sizeSliderSlideAreaRect = sizeSliderSlideArealObj.AddComponent<RectTransform>();
+			sizeSliderSlideAreaRect.anchorMax = Vector2.one;
+			sizeSliderSlideAreaRect.anchorMin = Vector2.zero;
+			sizeSliderSlideAreaRect.pivot = new Vector2(0.5f, 0.5f);
+			sizeSliderSlideAreaRect.offsetMin = new Vector2(10, 0);
+			sizeSliderSlideAreaRect.offsetMax = new Vector2(10, 0);
+
+			sizeSliderSlideAreaRect.SetParent(sizeSliderRect, false);
+			sizeSliderSlider.handleRect = sizeSliderFillRect;
+			var sizeSliderHandlelObj = new GameObject();
+			var sizeSliderHandleRect = sizeSliderHandlelObj.AddComponent<RectTransform>();
+			sizeSliderHandleRect.anchorMax = new Vector2(-5, 0.75f);
+			sizeSliderHandleRect.anchorMin = new Vector2(5, 0.25f);
+			sizeSliderHandleRect.pivot = new Vector2(0.5f, 0.5f);
+			sizeSliderHandleRect.offsetMin = new Vector2(10, 0);
+			sizeSliderHandleRect.offsetMax = new Vector2(10, 0);
+			var sizeSliderHandleImg = sizeSliderHandlelObj.AddComponent<Image>();
+			sizeSliderHandleImg.color = Color.gray;
+
+			sizeSliderHandleRect.SetParent(sizeSliderSlideAreaRect, false);
+			sizeSliderSlider.handleRect = sizeSliderHandleRect;
+			sizeSliderSlider.minValue = 1;
+			sizeSliderSlider.maxValue = 200f;
+			sizeSliderSlider.onValueChanged.AddListener((value) => {
+				Debug.Log("radius changed to " + value);
+				radius = value;
+			});
+			sizeSliderRect.SetParent(panelRect, false);
+
 		}
 
 		[HarmonyPostfix]
@@ -109,6 +212,7 @@ namespace Cartographer {
 				fogInset--;
 				Plugin.Log.LogDebug("fogInset: " + fogInset);
 			}
+			UpdateRect(panelRect);
 
 
 			if (isSketching) {
@@ -127,6 +231,47 @@ namespace Cartographer {
 					Sketch(x, y, fogRadius, ___m_fogTexture, unmask, maskData);
 					Sketch(x, y, radius, ___m_heightTexture, neutralHeight);
 				}
+			}
+		}
+
+		static void UpdateRect(RectTransform rectTransform) {
+			var updated = false;
+			var changeAmount = Time.deltaTime * 25f;
+			if (Input.GetKey(KeyCode.LeftArrow)) {
+				if (Input.GetKey(KeyCode.LeftShift)) {
+					rectTransform.offsetMin += Vector2.left * changeAmount;
+				} else {
+					rectTransform.offsetMax += Vector2.left * changeAmount;
+				}
+				updated = true;
+			}
+			if (Input.GetKey(KeyCode.RightArrow)) {
+				if (Input.GetKey(KeyCode.LeftShift)) {
+					rectTransform.offsetMin += Vector2.right * changeAmount;
+				} else {
+					rectTransform.offsetMax += Vector2.right * changeAmount;
+				}
+				updated = true;
+			}
+			if (Input.GetKey(KeyCode.UpArrow)) {
+				if (Input.GetKey(KeyCode.LeftShift)) {
+					rectTransform.offsetMin += Vector2.up * changeAmount;
+				} else {
+					rectTransform.offsetMax += Vector2.up * changeAmount;
+				}
+				updated = true;
+			}
+			if (Input.GetKey(KeyCode.DownArrow)) {
+				if (Input.GetKey(KeyCode.LeftShift)) {
+					rectTransform.offsetMin += Vector2.down * changeAmount;
+				} else {
+					rectTransform.offsetMax += Vector2.down * changeAmount;
+				}
+				updated = true;
+			}
+
+			if (updated) {
+				Plugin.Log.LogDebug($"min: {rectTransform.offsetMin}, max: {rectTransform.offsetMax}");
 			}
 		}
 		private static void Erase(int x, int y, float radius, Texture2D texture, Texture2D backupTexture) {
