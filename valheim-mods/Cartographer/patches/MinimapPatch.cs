@@ -14,7 +14,7 @@ namespace Cartographer {
 	class MinimapPatch {
 
 		private static bool isSketching = false;
-		private static bool sketchingIsEnabled = false;
+		public static bool sketchingIsEnabled = false;
 		private static Color unmask = Color.clear;
 		private static Color neutralHeight = new Color(31f, 0, 0);
 		private static Color mask = Color.white;
@@ -23,6 +23,10 @@ namespace Cartographer {
 		private static float fogInset = 5f;
 		private static bool hasBackedUpTextures = false;
 
+		private static SketchToggleComponent sketchToggle;
+		private static SketchPanelComponent sketchPanel;
+		private static TextInputComponent fogInsetInput;
+		private static TextInputComponent radiusInput;
 		private static Color[] sketchData;
 		private static Color[] maskData;
 
@@ -54,6 +58,26 @@ namespace Cartographer {
 			component.m_onRightUp = (Action<UIInputHandler>)Delegate.Combine(component.m_onRightUp, new Action<UIInputHandler>(MinimapPatch.OnMapRightUp));
 
 			backupTextures = new Dictionary<Texture2D, Texture2D>();
+
+			sketchPanel = SketchPanelComponent.New(__instance.m_pinRootLarge);
+			sketchToggle = SketchToggleComponent.New(sketchPanel.rectTransform);
+			sketchToggle = SketchToggleComponent.New(sketchPanel.rectTransform);
+			fogInsetInput = TextInputComponent.New(sketchPanel.rectTransform);
+			fogInsetInput.inputField.text = fogInset.ToString();
+			fogInsetInput.onValueChanged += (value) => {
+				if (float.TryParse(value, out float result)) {
+					fogInset = Mathf.Clamp(result, radius + 1, 500);
+					Plugin.Log.LogDebug($"fogInset changed to {result}");
+				}
+			};
+			radiusInput = TextInputComponent.New(sketchPanel.rectTransform);
+			radiusInput.inputField.text = radius.ToString();
+			radiusInput.onValueChanged += (value) => {
+				if (float.TryParse(value, out float result)) {
+					radius = Mathf.Clamp(result, 1, 500);
+					Plugin.Log.LogDebug($"radius changed to {result}");
+				}
+			};
 		}
 
 		[HarmonyPostfix]
@@ -66,10 +90,6 @@ namespace Cartographer {
 				backupTextures[___m_heightTexture] = CopyTexture(___m_heightTexture, TextureFormat.RFloat);
 				hasBackedUpTextures = true;
 				LoadMapData(___m_mapTexture, ___m_fogTexture, ___m_heightTexture, ___m_forestMaskTexture, ___m_explored);
-			}
-			if (Input.GetKeyDown(KeyCode.P)) {
-				sketchingIsEnabled = !sketchingIsEnabled;
-				Plugin.Log.LogDebug("SketchingIsEnabled toggled, new value: " + sketchingIsEnabled);
 			}
 
 			if (Input.GetKeyDown(KeyCode.N)) {
@@ -157,8 +177,8 @@ namespace Cartographer {
 		[HarmonyPrefix]
 		[HarmonyPatch("OnMapRightClick")]
 		public static bool OnMapRightClickPrefix(Minimap __instance) {
-			if (sketchingIsEnabled) return true;
-			return false;
+			if (sketchingIsEnabled) return false;
+			return true;
 		}
 
 		[HarmonyPostfix]

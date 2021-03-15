@@ -75,6 +75,9 @@
     <Reference Include="UnityEngine.UIModule">
       <HintPath>..\..\Libraries\UnityEngine.UIModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\..\Libraries\UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
       <HintPath>..\..\Libraries\UnityEngine.ImageConversionModule.dll</HintPath>
     </Reference>
@@ -82,8 +85,9 @@
   <ItemGroup>
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="patches\MinimapPatch.cs" />
-    <Compile Include="util\DataSerializer.cs" />
+    <Compile Include="patches\*.cs" />
+    <Compile Include="util\*.cs" />
+    <Compile Include="component\*.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
