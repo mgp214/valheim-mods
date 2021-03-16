@@ -12,7 +12,7 @@ using System.IO;
 
 namespace Cartographer {
 	class DataSerializer {
-		public enum DataType { Sketch, Mask }
+		public enum DataType { Sketch }
 		public static void Save(Color[] colors, DataType type) {
 			var path = GetPath(type);
 			Plugin.Log.LogInfo($"saving {type} data to {path}");
@@ -22,13 +22,30 @@ namespace Cartographer {
 			File.WriteAllBytes(path, bytes);
 		}
 
-		public static Color[] Load(DataType type) {
+		public static void Save(Texture2D texture, DataType type) {
+			var path = GetPath(type);
+			Plugin.Log.LogInfo($"saving {type} data to {path}");
+			var bytes = texture.EncodeToPNG();
+			File.WriteAllBytes(path, bytes);
+		}
+
+		public static Color[] LoadAsArray(DataType type) {
 			var path = GetPath(type);
 			Plugin.Log.LogInfo($"loading {type} data from {path}");
 			var bytes = File.ReadAllBytes(path);
 			var texture = new Texture2D(Minimap.instance.m_textureSize, Minimap.instance.m_textureSize, TextureFormat.RGBA32, false);
 			texture.LoadImage(bytes);
 			return texture.GetPixels();
+		}
+
+		public static Texture2D Load(DataType type) {
+			var path = GetPath(type);
+			Plugin.Log.LogInfo($"loading {type} data from {path}");
+			var bytes = File.ReadAllBytes(path);
+			var texture = new Texture2D(Minimap.instance.m_textureSize, Minimap.instance.m_textureSize, TextureFormat.RGBA32, false);
+			texture.wrapMode = TextureWrapMode.Clamp;
+			texture.LoadImage(bytes);
+			return texture;
 		}
 
 		private static string GetPath(DataType type) {
