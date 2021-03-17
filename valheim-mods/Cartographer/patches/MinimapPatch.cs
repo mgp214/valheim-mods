@@ -76,28 +76,37 @@ namespace Cartographer {
 
 			panelVlg.padding = new RectOffset(5, 5, 5, 5);
 			panelVlg.spacing = 5f;
-			panelVlg.childAlignment = TextAnchor.UpperLeft;
+			panelVlg.childAlignment = TextAnchor.UpperCenter;
 			panelVlg.childControlHeight = false;
 			panelVlg.childControlWidth = true;
 			panelVlg.childForceExpandHeight = false;
 			panelVlg.childForceExpandWidth = true;
+			// var dummyObj = new GameObject();
+			// var dummyRect = dummyObj.AddComponent<RectTransform>();
+			// dummyRect.SetParent(panelRect, false);
 
 			var sketchEnableObj = new GameObject();
 			var sketchEnableBtn = sketchEnableObj.AddComponent<Button>();
 			var sketchEnableRect = sketchEnableObj.AddComponent<RectTransform>();
+			sketchEnableRect.offsetMin = Vector2.zero;
+			sketchEnableRect.offsetMax = Vector2.up * 20;
+
+			sketchEnableRect.pivot = Vector2.one * 0.5f;
+			// sketchEnableRect.anchorMin = new Vector2(0, 1);
+			// sketchEnableRect.anchorMax = new Vector2(0, 1);
+			// sketchEnableRect.offsetMin = new Vector2(sketchEnableRect.offsetMin.x, -10);
+			// sketchEnableRect.offsetMax = new Vector2(sketchEnableRect.offsetMax.x, 10);
 
 			sketchEnableRect.SetParent(panelRect, false);
 			var sketchEnableTxtObj = new GameObject();
 			var sketchEnableTxt = sketchEnableTxtObj.AddComponent<Text>();
 			sketchEnableTxt.rectTransform.SetParent(sketchEnableRect, false);
-			sketchEnableTxt.rectTransform.anchorMin = Vector2.zero;
-			sketchEnableTxt.rectTransform.anchorMax = Vector2.one;
 			sketchEnableTxt.rectTransform.pivot = Vector2.one * 0.5f;
 			sketchEnableTxt.font = font;
 			sketchEnableTxt.fontSize = fontSize;
 			sketchEnableTxt.fontStyle = fontStyle;
 			sketchEnableTxt.text = "Sketch";
-			sketchEnableTxt.alignment = TextAnchor.UpperLeft;
+			sketchEnableTxt.alignment = TextAnchor.UpperCenter;
 			sketchEnableTxt.color = Color.gray;
 
 			sketchEnableTxt.color = Color.gray;
@@ -106,6 +115,38 @@ namespace Cartographer {
 				Plugin.Log.LogDebug("toggling sketchingIsEnabled: " + sketchingIsEnabled);
 				sketchEnableTxt.text = sketchingIsEnabled ? "Sketching" : "Sketch";
 				sketchEnableTxt.color = sketchingIsEnabled ? Color.white : Color.gray;
+			});
+
+			var colorSwatchGrpObj = new GameObject();
+			var colorSwatchGrpRect = colorSwatchGrpObj.AddComponent<RectTransform>();
+			colorSwatchGrpRect.offsetMin = new Vector2(colorSwatchGrpRect.offsetMin.x, -10);
+			colorSwatchGrpRect.offsetMax = new Vector2(colorSwatchGrpRect.offsetMax.x, 10);
+			var colorSwatchGrpHlg = colorSwatchGrpObj.AddComponent<HorizontalLayoutGroup>();
+			colorSwatchGrpRect.SetParent(panelRect, false);
+
+			AddColorSwatch(colorSwatchGrpRect, Color.white, "white");
+			AddColorSwatch(colorSwatchGrpRect, Color.black, "black");
+			AddColorSwatch(colorSwatchGrpRect, Color.red, "red");
+			AddColorSwatch(colorSwatchGrpRect, Color.blue, "blue");
+			AddColorSwatch(colorSwatchGrpRect, Color.yellow, "yellow");
+			AddColorSwatch(colorSwatchGrpRect, Color.green, "green");
+
+		}
+
+		private static void AddColorSwatch(RectTransform parent, Color color, string label) {
+			var swatch = new GameObject();
+			var swatchRect = swatch.AddComponent<RectTransform>();
+			var swatchImg = swatch.AddComponent<Image>();
+			swatchImg.color = color;
+			var swatchBtn = swatch.AddComponent<Button>();
+
+			swatchRect.offsetMin = new Vector2(-8, -8);
+			swatchRect.offsetMax = new Vector2(8, 8);
+			swatchRect.SetParent(parent, false);
+
+			swatchBtn.onClick.AddListener(() => {
+				sketchColor = color;
+				Plugin.Log.LogDebug($"sketchColor: {label}");
 			});
 		}
 
@@ -122,7 +163,6 @@ namespace Cartographer {
 
 		static void Initialize() {
 			Plugin.Log.LogInfo("initializing cartographer");
-
 			var sketchImageObj = new GameObject("Sketch Image Overlay");
 			var sketchCanvasGroup = sketchImageObj.AddComponent<CanvasGroup>();
 			sketchCanvasGroup.interactable = false;
@@ -136,7 +176,6 @@ namespace Cartographer {
 			sketchRect.position = mapRect.position;
 			sketchRect.offsetMax = mapRect.offsetMax;
 			sketchRect.offsetMin = mapRect.offsetMin;
-
 
 			sketchTexture = LoadMapData();
 			sketchImage.texture = sketchTexture;
@@ -179,20 +218,17 @@ namespace Cartographer {
 				Plugin.Log.LogDebug("radius: " + radius);
 			}
 
-
 			if (Input.GetKeyDown(KeyCode.End)) {
 				sketchTexture = ResetMapData();
 				sketchImage.texture = sketchTexture;
 			}
-
-			// UpdateRect(panelRect);
 
 			CenterSketch(Player.m_localPlayer.transform.position + ___m_mapOffset, ___m_largeZoom);
 
 			if (isSketching) {
 				var pos = ScreenToWorldPoint(__instance, Input.mousePosition);
 				WorldToPixel(pos, out int x, out int y);
-				Plugin.Log.LogDebug($"sketching with r: {radius}, pixelSize: {Minimap.instance.m_pixelSize}");
+				Plugin.Log.LogDebug($"sketching with r: {radius}");
 				if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) {
 					Sketch(x, y, radius, sketchTexture, Color.clear);
 				} else {
@@ -201,50 +237,8 @@ namespace Cartographer {
 			}
 		}
 
-		// static void UpdateRect(RectTransform rectTransform) {
-		// 	var updated = false;
-		// 	var changeAmount = Time.deltaTime * 25f;
-		// 	if (Input.GetKey(KeyCode.LeftArrow)) {
-		// 		if (Input.GetKey(KeyCode.LeftShift)) {
-		// 			rectTransform.offsetMin += Vector2.left * changeAmount;
-		// 		} else {
-		// 			rectTransform.offsetMax += Vector2.left * changeAmount;
-		// 		}
-		// 		updated = true;
-		// 	}
-		// 	if (Input.GetKey(KeyCode.RightArrow)) {
-		// 		if (Input.GetKey(KeyCode.LeftShift)) {
-		// 			rectTransform.offsetMin += Vector2.right * changeAmount;
-		// 		} else {
-		// 			rectTransform.offsetMax += Vector2.right * changeAmount;
-		// 		}
-		// 		updated = true;
-		// 	}
-		// 	if (Input.GetKey(KeyCode.UpArrow)) {
-		// 		if (Input.GetKey(KeyCode.LeftShift)) {
-		// 			rectTransform.offsetMin += Vector2.up * changeAmount;
-		// 		} else {
-		// 			rectTransform.offsetMax += Vector2.up * changeAmount;
-		// 		}
-		// 		updated = true;
-		// 	}
-		// 	if (Input.GetKey(KeyCode.DownArrow)) {
-		// 		if (Input.GetKey(KeyCode.LeftShift)) {
-		// 			rectTransform.offsetMin += Vector2.down * changeAmount;
-		// 		} else {
-		// 			rectTransform.offsetMax += Vector2.down * changeAmount;
-		// 		}
-		// 		updated = true;
-		// 	}
-
-		// 	if (updated) {
-		// 		Plugin.Log.LogDebug($"min: {rectTransform.offsetMin}, max: {rectTransform.offsetMax}");
-		// 	}
-		// }
 		private static void Sketch(int x, int y, float radius, Texture2D texture, Color color) {
-			int r = (int)Mathf.Ceil(radius / SketchSize);
-			// x = (int)(x * sketchResolutionFactor);
-			// y = (int)(y * sketchResolutionFactor);
+			int r = (int)Mathf.Ceil(radius);
 			for (int i = y - r; i <= y + r; i++) {
 				for (int j = x - r; j <= x + r; j++) {
 					if (j >= 0 && i >= 0 && j < SketchSize && i < SketchSize && new Vector2((float)(j - x), (float)(i - y)).magnitude <= (float)r) {
