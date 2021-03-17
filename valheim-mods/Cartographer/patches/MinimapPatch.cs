@@ -15,18 +15,15 @@ namespace Cartographer {
 
 		private static bool isSketching = false;
 		public static bool sketchingIsEnabled = false;
-		private static Color sketchColor = Color.red;
-		private static float radius = 15f;
+		private static Color sketchColor = Color.white;
+		private static float radius = 2f;
 		private static bool hasInitialized = false;
-
-		private static RectTransform sizeSliderRect;
-
 		private static RawImage sketchImage;
 		private static Texture2D sketchTexture;
 		private static RectTransform panelRect;
 
-		public const int sketchDataSize = 4096;
-		public static float pixelSize;
+		private static float sketchResolutionFactor = 2;
+		private static int SketchSize { get => (int)((float)Minimap.instance.m_textureSize * sketchResolutionFactor); }
 
 		[HarmonyReversePatch]
 		[HarmonyPatch(typeof(Minimap), "ScreenToWorldPoint")]
@@ -34,10 +31,16 @@ namespace Cartographer {
 			throw new NotImplementedException("It's a stub");
 		}
 
-		[HarmonyReversePatch]
-		[HarmonyPatch(typeof(Minimap), "WorldToPixel")]
-		public static void WorldToPixel(Minimap instance, Vector3 p, out int mx, out int my) {
-			throw new NotImplementedException("It's a stub");
+		// [HarmonyReversePatch]
+		// [HarmonyPatch(typeof(Minimap), "WorldToPixel")]
+		// public static void WorldToPixel(Minimap instance, Vector3 p, out int mx, out int my) {
+		// 	throw new NotImplementedException("It's a stub");
+		// }
+
+		public static void WorldToPixel(Vector3 p, out int x, out int y) {
+			int offset = SketchSize / 2;
+			x = Mathf.RoundToInt(p.x / Minimap.instance.m_pixelSize * sketchResolutionFactor + (float)offset);
+			y = Mathf.RoundToInt(p.z / Minimap.instance.m_pixelSize * sketchResolutionFactor + (float)offset);
 		}
 
 		[HarmonyReversePatch]
@@ -104,54 +107,6 @@ namespace Cartographer {
 				sketchEnableTxt.text = sketchingIsEnabled ? "Sketching" : "Sketch";
 				sketchEnableTxt.color = sketchingIsEnabled ? Color.white : Color.gray;
 			});
-			Debug.Log("sizeSliderObj");
-			var sizeSliderObj = new GameObject();
-			var sizeSliderSlider = sizeSliderObj.AddComponent<Slider>();
-			sizeSliderRect = sizeSliderObj.GetComponent<RectTransform>();
-
-			Debug.Log("sizeSliderFillObj");
-			var sizeSliderFillObj = new GameObject();
-			var sizeSliderFillRect = sizeSliderFillObj.AddComponent<RectTransform>();
-			sizeSliderFillRect.anchorMax = new Vector2(1, 0.75f);
-			sizeSliderFillRect.anchorMin = new Vector2(0, 0.25f);
-			sizeSliderFillRect.pivot = new Vector2(0.5f, 0.5f);
-			sizeSliderFillRect.offsetMin = new Vector2(5, 0);
-			sizeSliderFillRect.offsetMax = new Vector2(5, 0);
-			var sizeSliderFillImg = sizeSliderFillObj.AddComponent<Image>();
-			sizeSliderFillImg.color = Color.gray;
-
-			sizeSliderFillRect.SetParent(sizeSliderRect, false);
-			sizeSliderSlider.fillRect = sizeSliderFillRect;
-			var sizeSliderSlideArealObj = new GameObject();
-			var sizeSliderSlideAreaRect = sizeSliderSlideArealObj.AddComponent<RectTransform>();
-			sizeSliderSlideAreaRect.anchorMax = Vector2.one;
-			sizeSliderSlideAreaRect.anchorMin = Vector2.zero;
-			sizeSliderSlideAreaRect.pivot = new Vector2(0.5f, 0.5f);
-			sizeSliderSlideAreaRect.offsetMin = new Vector2(10, 0);
-			sizeSliderSlideAreaRect.offsetMax = new Vector2(10, 0);
-
-			sizeSliderSlideAreaRect.SetParent(sizeSliderRect, false);
-			sizeSliderSlider.handleRect = sizeSliderFillRect;
-			var sizeSliderHandlelObj = new GameObject();
-			var sizeSliderHandleRect = sizeSliderHandlelObj.AddComponent<RectTransform>();
-			sizeSliderHandleRect.anchorMax = new Vector2(-5, 0.75f);
-			sizeSliderHandleRect.anchorMin = new Vector2(5, 0.25f);
-			sizeSliderHandleRect.pivot = new Vector2(0.5f, 0.5f);
-			sizeSliderHandleRect.offsetMin = new Vector2(10, 0);
-			sizeSliderHandleRect.offsetMax = new Vector2(10, 0);
-			var sizeSliderHandleImg = sizeSliderHandlelObj.AddComponent<Image>();
-			sizeSliderHandleImg.color = Color.gray;
-
-			sizeSliderHandleRect.SetParent(sizeSliderSlideAreaRect, false);
-			sizeSliderSlider.handleRect = sizeSliderHandleRect;
-			sizeSliderSlider.minValue = 1;
-			sizeSliderSlider.maxValue = 200f;
-			sizeSliderSlider.onValueChanged.AddListener((value) => {
-				Debug.Log("radius changed to " + value);
-				radius = value;
-			});
-			sizeSliderRect.SetParent(panelRect, false);
-
 		}
 
 		private static void CenterSketch(Vector3 centerPoint, float largeZoom) {
@@ -163,6 +118,28 @@ namespace Cartographer {
 			uvRectLarge.height = largeZoom;
 			uvRectLarge.center = new Vector2(x, y);
 			sketchImage.uvRect = uvRectLarge;
+		}
+
+		static void Initialize() {
+			Plugin.Log.LogInfo("initializing cartographer");
+
+			var sketchImageObj = new GameObject("Sketch Image Overlay");
+			var sketchCanvasGroup = sketchImageObj.AddComponent<CanvasGroup>();
+			sketchCanvasGroup.interactable = false;
+			sketchCanvasGroup.blocksRaycasts = false;
+			sketchImage = sketchImageObj.AddComponent<RawImage>();
+			var sketchRect = sketchImage.rectTransform;
+			var mapRect = Minimap.instance.m_mapImageLarge.rectTransform;
+			sketchRect.SetParent(mapRect.parent, false);
+			sketchRect.anchorMin = mapRect.anchorMin;
+			sketchRect.anchorMax = mapRect.anchorMax;
+			sketchRect.position = mapRect.position;
+			sketchRect.offsetMax = mapRect.offsetMax;
+			sketchRect.offsetMin = mapRect.offsetMin;
+
+
+			sketchTexture = LoadMapData();
+			sketchImage.texture = sketchTexture;
 		}
 
 		[HarmonyPostfix]
@@ -177,47 +154,45 @@ namespace Cartographer {
 				Vector3 ___m_mapOffset,
 				float ___m_largeZoom) {
 
+			// BELOW only executes when everything is loaded in.
+			if (Player.m_localPlayer == null) return;
 			if (!hasInitialized) {
-				Plugin.Log.LogInfo("initializing cartographer");
 				hasInitialized = true;
-
-				var sketchImageObj = new GameObject("Sketch Image Overlay");
-				var sketchCanvasGroup = sketchImageObj.AddComponent<CanvasGroup>();
-				sketchCanvasGroup.interactable = false;
-				sketchCanvasGroup.blocksRaycasts = false;
-				sketchImage = sketchImageObj.AddComponent<RawImage>();
-				var sketchRect = sketchImage.rectTransform;
-				var mapRect = Minimap.instance.m_mapImageLarge.rectTransform;
-				sketchRect.SetParent(mapRect.parent, false);
-				sketchRect.anchorMin = mapRect.anchorMin;
-				sketchRect.anchorMax = mapRect.anchorMax;
-				sketchRect.position = mapRect.position;
-				sketchRect.offsetMax = mapRect.offsetMax;
-				sketchRect.offsetMin = mapRect.offsetMin;
-
-				sketchTexture = LoadMapData(sketchTexture);
-				sketchImage.texture = sketchTexture;
-				pixelSize = Minimap.instance.m_pixelSize / ((float)Minimap.instance.m_textureSize / (float)sketchDataSize);
+				Initialize();
 			}
 
-			if (Input.GetKeyDown(KeyCode.N)) {
-				radius++;
-				Plugin.Log.LogDebug("radius: " + radius);
-			}
-			if (Input.GetKeyDown(KeyCode.B)) {
+			// if (Input.GetKeyDown(KeyCode.N)) {
+			// 	if (Input.GetKey(KeyCode.LeftShift)) {
+			// 		radius--;
+			// 		Plugin.Log.LogDebug("radius: " + radius);
+			// 	} else {
+			// 		radius++;
+			// 		Plugin.Log.LogDebug("radius: " + radius);
+			// 	}
+			// }
+			if (Input.GetKeyDown(KeyCode.LeftBracket)) {
 				radius--;
 				Plugin.Log.LogDebug("radius: " + radius);
 			}
-			// BELOW only executes when everything is loaded in.
-			if (Player.m_localPlayer == null) return;
-			UpdateRect(panelRect);
+			if (Input.GetKeyDown(KeyCode.RightBracket)) {
+				radius++;
+				Plugin.Log.LogDebug("radius: " + radius);
+			}
+
+
+			if (Input.GetKeyDown(KeyCode.End)) {
+				sketchTexture = ResetMapData();
+				sketchImage.texture = sketchTexture;
+			}
+
+			// UpdateRect(panelRect);
 
 			CenterSketch(Player.m_localPlayer.transform.position + ___m_mapOffset, ___m_largeZoom);
 
 			if (isSketching) {
 				var pos = ScreenToWorldPoint(__instance, Input.mousePosition);
-				WorldToPixel(__instance, pos, out int x, out int y);
-				Plugin.Log.LogDebug($"sketching with r: {radius}");
+				WorldToPixel(pos, out int x, out int y);
+				Plugin.Log.LogDebug($"sketching with r: {radius}, pixelSize: {Minimap.instance.m_pixelSize}");
 				if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) {
 					Sketch(x, y, radius, sketchTexture, Color.clear);
 				} else {
@@ -226,52 +201,54 @@ namespace Cartographer {
 			}
 		}
 
-		static void UpdateRect(RectTransform rectTransform) {
-			var updated = false;
-			var changeAmount = Time.deltaTime * 25f;
-			if (Input.GetKey(KeyCode.LeftArrow)) {
-				if (Input.GetKey(KeyCode.LeftShift)) {
-					rectTransform.offsetMin += Vector2.left * changeAmount;
-				} else {
-					rectTransform.offsetMax += Vector2.left * changeAmount;
-				}
-				updated = true;
-			}
-			if (Input.GetKey(KeyCode.RightArrow)) {
-				if (Input.GetKey(KeyCode.LeftShift)) {
-					rectTransform.offsetMin += Vector2.right * changeAmount;
-				} else {
-					rectTransform.offsetMax += Vector2.right * changeAmount;
-				}
-				updated = true;
-			}
-			if (Input.GetKey(KeyCode.UpArrow)) {
-				if (Input.GetKey(KeyCode.LeftShift)) {
-					rectTransform.offsetMin += Vector2.up * changeAmount;
-				} else {
-					rectTransform.offsetMax += Vector2.up * changeAmount;
-				}
-				updated = true;
-			}
-			if (Input.GetKey(KeyCode.DownArrow)) {
-				if (Input.GetKey(KeyCode.LeftShift)) {
-					rectTransform.offsetMin += Vector2.down * changeAmount;
-				} else {
-					rectTransform.offsetMax += Vector2.down * changeAmount;
-				}
-				updated = true;
-			}
+		// static void UpdateRect(RectTransform rectTransform) {
+		// 	var updated = false;
+		// 	var changeAmount = Time.deltaTime * 25f;
+		// 	if (Input.GetKey(KeyCode.LeftArrow)) {
+		// 		if (Input.GetKey(KeyCode.LeftShift)) {
+		// 			rectTransform.offsetMin += Vector2.left * changeAmount;
+		// 		} else {
+		// 			rectTransform.offsetMax += Vector2.left * changeAmount;
+		// 		}
+		// 		updated = true;
+		// 	}
+		// 	if (Input.GetKey(KeyCode.RightArrow)) {
+		// 		if (Input.GetKey(KeyCode.LeftShift)) {
+		// 			rectTransform.offsetMin += Vector2.right * changeAmount;
+		// 		} else {
+		// 			rectTransform.offsetMax += Vector2.right * changeAmount;
+		// 		}
+		// 		updated = true;
+		// 	}
+		// 	if (Input.GetKey(KeyCode.UpArrow)) {
+		// 		if (Input.GetKey(KeyCode.LeftShift)) {
+		// 			rectTransform.offsetMin += Vector2.up * changeAmount;
+		// 		} else {
+		// 			rectTransform.offsetMax += Vector2.up * changeAmount;
+		// 		}
+		// 		updated = true;
+		// 	}
+		// 	if (Input.GetKey(KeyCode.DownArrow)) {
+		// 		if (Input.GetKey(KeyCode.LeftShift)) {
+		// 			rectTransform.offsetMin += Vector2.down * changeAmount;
+		// 		} else {
+		// 			rectTransform.offsetMax += Vector2.down * changeAmount;
+		// 		}
+		// 		updated = true;
+		// 	}
 
-			if (updated) {
-				Plugin.Log.LogDebug($"min: {rectTransform.offsetMin}, max: {rectTransform.offsetMax}");
-			}
-		}
+		// 	if (updated) {
+		// 		Plugin.Log.LogDebug($"min: {rectTransform.offsetMin}, max: {rectTransform.offsetMax}");
+		// 	}
+		// }
 		private static void Sketch(int x, int y, float radius, Texture2D texture, Color color) {
-			int r = (int)Mathf.Ceil(radius / Minimap.instance.m_pixelSize);
+			int r = (int)Mathf.Ceil(radius / SketchSize);
+			// x = (int)(x * sketchResolutionFactor);
+			// y = (int)(y * sketchResolutionFactor);
 			for (int i = y - r; i <= y + r; i++) {
 				for (int j = x - r; j <= x + r; j++) {
-					if (j >= 0 && i >= 0 && j < Minimap.instance.m_textureSize && i < Minimap.instance.m_textureSize && new Vector2((float)(j - x), (float)(i - y)).magnitude <= (float)r) {
-						if (j == 0 || j == Minimap.instance.m_textureSize - 1 || i == 0 || i == Minimap.instance.m_textureSize - 1) continue;
+					if (j >= 0 && i >= 0 && j < SketchSize && i < SketchSize && new Vector2((float)(j - x), (float)(i - y)).magnitude <= (float)r) {
+						if (j == 0 || j == SketchSize - 1 || i == 0 || i == SketchSize - 1) continue;
 						texture.SetPixel(j, i, color);
 					}
 				}
@@ -292,14 +269,14 @@ namespace Cartographer {
 		public static void SaveMapDataPrefix(Minimap __instance) {
 			try {
 				DataSerializer.Save(sketchTexture, DataType.Sketch);
+				hasInitialized = false;
 			} catch (Exception e) {
 				Plugin.Log.LogError("Couldn't save map data for this world.");
 				Plugin.Log.LogDebug(e);
 			}
 		}
 
-		public static Texture2D LoadMapData(Texture2D sketchTexture) {
-			var expectedSize = Minimap.instance.m_textureSize * Minimap.instance.m_textureSize;
+		public static Texture2D LoadMapData() {
 			Plugin.Log.LogInfo("loading map data");
 			Texture2D texture;
 			try {
@@ -308,17 +285,22 @@ namespace Cartographer {
 			} catch (Exception e) {
 				Plugin.Log.LogWarning("Couldn't load map data for this world. It might just not have been generated yet.");
 				Plugin.Log.LogDebug(e);
-				Plugin.Log.LogWarning("Creating blank sketch data");
-
-				texture = new Texture2D(Minimap.instance.m_textureSize, Minimap.instance.m_textureSize, TextureFormat.RGBA32, false);
-				texture.wrapMode = TextureWrapMode.Clamp;
-				var pixels = new Color[Minimap.instance.m_textureSize * Minimap.instance.m_textureSize];
-				for (var i = 0; i < pixels.Length; i++) {
-					pixels[i] = Color.clear;
-				}
-				texture.SetPixels(pixels);
-				texture.Apply();
+				Plugin.Log.LogWarning($"Creating blank sketch data with size {SketchSize}x{SketchSize}");
+				return ResetMapData();
 			}
+			return texture;
+		}
+
+		private static Texture2D ResetMapData() {
+			Plugin.Log.LogWarning($"Creating blank sketch data with size {SketchSize}x{SketchSize}");
+			var texture = new Texture2D(SketchSize, SketchSize, TextureFormat.RGBA32, false);
+			texture.wrapMode = TextureWrapMode.Clamp;
+			var pixels = new Color[SketchSize * SketchSize];
+			for (var i = 0; i < pixels.Length; i++) {
+				pixels[i] = Color.clear;
+			}
+			texture.SetPixels(pixels);
+			texture.Apply();
 			return texture;
 		}
 		public static void OnMapRightUp(UIInputHandler handler) {
