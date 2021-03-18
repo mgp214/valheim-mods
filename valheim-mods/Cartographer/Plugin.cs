@@ -16,7 +16,7 @@ namespace Cartographer {
 	public class Plugin : BaseUnityPlugin {
 		public const string pluginGuid = "banana.cartographer";
 		public const string pluginName = "Cartographer";
-		public const string pluginVersion = "1.0.0.111";
+		public const string pluginVersion = "1.0.0.139";
 		public static ConfigEntry<string> logLevelConfig;
 		private static ConfigEntry<string> sketchColorsConfig;
 		public static List<Color> sketchColors;

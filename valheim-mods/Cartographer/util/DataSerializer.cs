@@ -56,5 +56,23 @@ namespace Cartographer {
 			Plugin.Log.LogDebug("Got current world name: " + worldName);
 			return $"{Utils.GetSaveDataPath()}/worlds/{worldName}_cartographer_{type.ToString().Split('.').Last()}.png";
 		}
+
+		private static string GetAssetPath(string filename) {
+			return $"{BepInEx.Paths.PluginPath}/cartographer/assets/{filename}";
+		}
+
+		public static Texture2D LoadTextureAsset(string name) {
+			var path = GetAssetPath(name);
+			try {
+				var texture = new Texture2D(1, 1);
+				var bytes = File.ReadAllBytes(path);
+				Plugin.Log.LogDebug($"Loaded image asset {name}");
+				texture.LoadImage(bytes);
+				return texture;
+			} catch (Exception e) {
+				Plugin.Log.LogError($"Couldn't load asset {path}: {e.GetType().ToString()}");
+			}
+			return Texture2D.whiteTexture;
+		}
 	}
 }

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using static Cartographer.DataSerializer;
 using UnityEngine.UI;
+using UnityEngine.Events;
 
 namespace Cartographer {
 
@@ -49,6 +50,42 @@ namespace Cartographer {
 			throw new NotImplementedException("It's a stub");
 		}
 
+		private static RectTransform CreateTextButton(out Text text, out Button button, string label = null, Font font = null, FontStyle style = FontStyle.Normal, int fontSize = 10, UnityAction onClick = null) {
+			var obj = new GameObject();
+			var rect = obj.AddComponent<RectTransform>();
+			button = obj.AddComponent<Button>();
+			if (onClick != null)
+				button.onClick.AddListener(onClick);
+
+			var textObj = new GameObject();
+			text = textObj.AddComponent<Text>();
+			text.text = label;
+			text.rectTransform.SetParent(rect, false);
+			if (font != null) text.font = font;
+			text.fontStyle = style;
+			text.fontSize = fontSize;
+			text.alignment = TextAnchor.UpperCenter;
+			text.color = Color.white;
+
+			return rect;
+		}
+
+		private static RectTransform CreateImageButton(out RawImage image, out RawImage disabledImage, out Button button, bool startEnabled = false, UnityAction onClick = null) {
+			var obj = new GameObject();
+			var rect = obj.AddComponent<RectTransform>();
+			button = obj.AddComponent<Button>();
+			image = obj.AddComponent<RawImage>();
+			var imgObj = new GameObject();
+			var imgRect = imgObj.AddComponent<RectTransform>();
+			var xObj = new GameObject();
+			var xRect = xObj.AddComponent<RectTransform>();
+			disabledImage = xObj.AddComponent<RawImage>();
+			xRect.SetParent(rect, false);
+			disabledImage.enabled = !startEnabled;
+			if (onClick != null)
+				button.onClick.AddListener(onClick);
+			return rect;
+		}
 		[HarmonyPostfix]
 		[HarmonyPatch("Start")]
 		public static void StartPostfix(Minimap __instance, Texture2D ___m_mapTexture, Texture2D ___m_fogTexture, Texture2D ___m_forestMaskTexture, Texture2D ___m_heightTexture) {
@@ -69,7 +106,7 @@ namespace Cartographer {
 			panelRect.anchorMax = new Vector2(1, 0.5f);
 			panelRect.anchorMin = new Vector2(1, 0.5f);
 			panelRect.pivot = new Vector2(1, 0.5f);
-			panelRect.offsetMin = new Vector2(-100, -100);
+			panelRect.offsetMin = new Vector2(-75, -100);
 			panelRect.offsetMax = new Vector2(0, 100);
 
 			panelImg.color = new Color(0.33f, 0.33f, 0.33f, 0.33f);
@@ -78,43 +115,59 @@ namespace Cartographer {
 			panelVlg.spacing = 5f;
 			panelVlg.childAlignment = TextAnchor.UpperCenter;
 			panelVlg.childControlHeight = false;
-			panelVlg.childControlWidth = true;
+			panelVlg.childControlWidth = false;
 			panelVlg.childForceExpandHeight = false;
-			panelVlg.childForceExpandWidth = true;
-			// var dummyObj = new GameObject();
-			// var dummyRect = dummyObj.AddComponent<RectTransform>();
-			// dummyRect.SetParent(panelRect, false);
+			panelVlg.childForceExpandWidth = false;
 
-			var sketchEnableObj = new GameObject();
-			var sketchEnableBtn = sketchEnableObj.AddComponent<Button>();
-			var sketchEnableRect = sketchEnableObj.AddComponent<RectTransform>();
-			sketchEnableRect.offsetMin = Vector2.zero;
-			sketchEnableRect.offsetMax = Vector2.up * 20;
+			// var sketchEnableObj = new GameObject();
+			// var sketchEnableBtn = sketchEnableObj.AddComponent<Button>();
+			// var sketchEnableRect = sketchEnableObj.AddComponent<RectTransform>();
+			// sketchEnableRect.offsetMin = Vector2.zero;
+			// sketchEnableRect.offsetMax = Vector2.up * 20;
 
-			sketchEnableRect.pivot = Vector2.one * 0.5f;
-			// sketchEnableRect.anchorMin = new Vector2(0, 1);
-			// sketchEnableRect.anchorMax = new Vector2(0, 1);
-			// sketchEnableRect.offsetMin = new Vector2(sketchEnableRect.offsetMin.x, -10);
-			// sketchEnableRect.offsetMax = new Vector2(sketchEnableRect.offsetMax.x, 10);
+			// sketchEnableRect.pivot = Vector2.one * 0.5f;
 
-			sketchEnableRect.SetParent(panelRect, false);
-			var sketchEnableTxtObj = new GameObject();
-			var sketchEnableTxt = sketchEnableTxtObj.AddComponent<Text>();
-			sketchEnableTxt.rectTransform.SetParent(sketchEnableRect, false);
-			sketchEnableTxt.rectTransform.pivot = Vector2.one * 0.5f;
-			sketchEnableTxt.font = font;
-			sketchEnableTxt.fontSize = fontSize;
-			sketchEnableTxt.fontStyle = fontStyle;
-			sketchEnableTxt.text = "Sketch";
-			sketchEnableTxt.alignment = TextAnchor.UpperCenter;
-			sketchEnableTxt.color = Color.gray;
+			// sketchEnableRect.SetParent(panelRect, false);
+			// var sketchEnableTxtObj = new GameObject();
+			// var sketchEnableTxt = sketchEnableTxtObj.AddComponent<Text>();
+			// sketchEnableTxt.rectTransform.SetParent(sketchEnableRect, false);
+			// sketchEnableTxt.rectTransform.pivot = Vector2.one * 0.5f;
+			// sketchEnableTxt.font = font;
+			// sketchEnableTxt.fontSize = fontSize;
+			// sketchEnableTxt.fontStyle = fontStyle;
+			// sketchEnableTxt.text = "Sketch";
+			// sketchEnableTxt.alignment = TextAnchor.UpperCenter;
+			// sketchEnableTxt.color = Color.gray;
 
-			sketchEnableTxt.color = Color.gray;
-			sketchEnableBtn.onClick.AddListener(() => {
-				sketchingIsEnabled = !sketchingIsEnabled;
+			// sketchEnableTxt.color = Color.gray;
+			// sketchEnableBtn.onClick.AddListener(() => {
+			// 	sketchingIsEnabled = !sketchingIsEnabled;
+			// 	Plugin.Log.LogDebug("toggling sketchingIsEnabled: " + sketchingIsEnabled);
+			// 	sketchEnableTxt.text = sketchingIsEnabled ? "Sketching" : "Sketch";
+			// 	sketchEnableTxt.color = sketchingIsEnabled ? Color.white : Color.gray;
+			// });
+
+			// var sketchEnableRect = CreateTextButton(out var sketchEnableText, out var sketchEnableBtn, "Sketch", font: font, style: fontStyle, fontSize: fontSize);
+			// sketchEnableRect_text.SetParent(panelRect, false);
+			// var sketchEnableRect = CreateImageButton(out var image, out var disabledImage, out var button);
+			// sketchEnableRect.SetParent(panelRect, false);
+			// sketchEnableRect.offsetMin = new Vector2(-10, -10);
+			// sketchEnableRect.offsetMax = new Vector2(10, 10);
+			// // image.color = Color.gray;
+			// image.texture = DataSerializer.LoadTextureAsset("pencil.png");
+			// disabledImage.texture = DataSerializer.LoadTextureAsset("disabled.png");
+			// button.onClick.AddListener(() => {
+			// 	sketchingIsEnabled = !sketchingIsEnabled;
+			// 	disabledImage.enabled = !sketchingIsEnabled;
+			// 	Plugin.Log.LogDebug("toggling sketchingIsEnabled: " + sketchingIsEnabled);
+			// 	// sketchEnableText.text = sketchingIsEnabled ? "Sketching" : "Sketch";
+			// 	// image.color = sketchingIsEnabled ? Color.white : Color.gray;
+			// });
+
+			var sketchEnableToggle = new ToggleComponent(panelRect, new Vector2(30, 30), "pencil.png", false);
+			sketchEnableToggle.onValueChanged.AddListener((val) => {
+				sketchingIsEnabled = val;
 				Plugin.Log.LogDebug("toggling sketchingIsEnabled: " + sketchingIsEnabled);
-				sketchEnableTxt.text = sketchingIsEnabled ? "Sketching" : "Sketch";
-				sketchEnableTxt.color = sketchingIsEnabled ? Color.white : Color.gray;
 			});
 
 			var colorSwatchGrpObj = new GameObject();
@@ -127,6 +180,56 @@ namespace Cartographer {
 			foreach (var color in Plugin.sketchColors) {
 				AddColorSwatch(colorSwatchGrpRect, color, ColorUtility.ToHtmlStringRGB(color));
 			}
+
+			var sizeObj = new GameObject();
+			var sizeRect = sizeObj.AddComponent<RectTransform>();
+			sizeRect.offsetMin = new Vector2(colorSwatchGrpRect.offsetMin.x, -10);
+			sizeRect.offsetMax = new Vector2(colorSwatchGrpRect.offsetMax.x, 10);
+			var sizeHlg = sizeObj.AddComponent<HorizontalLayoutGroup>();
+			// sizeRect.SetParent(panelRect, false);
+
+			var sizeDisplayObj = new GameObject();
+			var sizeDisplayRect = sizeDisplayObj.AddComponent<RectTransform>();
+			sizeDisplayRect.offsetMin = new Vector2(-50, -50);
+			sizeDisplayRect.offsetMax = new Vector2(50, 50);
+			var sizeDisplayTxt = sizeDisplayObj.AddComponent<Text>();
+			sizeDisplayTxt.resizeTextForBestFit = true;
+			sizeDisplayTxt.text = radius.ToString();
+
+			var sizeDownBtnObj = new GameObject();
+			var sizeDownRect = sizeDownBtnObj.AddComponent<RectTransform>();
+			sizeDownRect.offsetMin = new Vector2(-50, -50);
+			sizeDownRect.offsetMax = new Vector2(50, 50);
+			var sizeDownBtn = sizeDownBtnObj.AddComponent<Button>();
+			var sizeDownBtnTxtObj = new GameObject();
+			var sizeDownBtnTxt = sizeDownBtnTxtObj.AddComponent<Text>();
+			sizeDownBtnTxt.text = "-";
+
+			sizeDownBtn.onClick.AddListener(() => {
+				radius--;
+				sizeDisplayTxt.text = radius.ToString();
+				Plugin.Log.LogDebug("radius: " + radius);
+			});
+
+			sizeDownRect.SetParent(sizeRect, false);
+			sizeDisplayRect.SetParent(sizeRect, false);
+
+			var sizeUpBtnObj = new GameObject();
+			var sizeUpRect = sizeUpBtnObj.AddComponent<RectTransform>();
+			sizeDownRect.offsetMin = new Vector2(-50, -50);
+			sizeDownRect.offsetMax = new Vector2(50, 50);
+			var sizeUpBtn = sizeUpBtnObj.AddComponent<Button>();
+			var sizeUpBtnTxtObj = new GameObject();
+			var sizeUpBtnTxt = sizeUpBtnTxtObj.AddComponent<Text>();
+			sizeUpBtnTxt.text = "+";
+
+			sizeUpBtn.onClick.AddListener(() => {
+				radius++;
+				sizeDisplayTxt.text = radius.ToString();
+				Plugin.Log.LogDebug("radius: " + radius);
+			});
+
+			sizeUpRect.SetParent(sizeRect, false);
 		}
 
 		private static void AddColorSwatch(RectTransform parent, Color color, string label) {
@@ -166,7 +269,9 @@ namespace Cartographer {
 			sketchImage = sketchImageObj.AddComponent<RawImage>();
 			var sketchRect = sketchImage.rectTransform;
 			var mapRect = Minimap.instance.m_mapImageLarge.rectTransform;
+
 			sketchRect.SetParent(mapRect.parent, false);
+			// sketchRect.SetSiblingIndex(mapRect.GetSiblingIndex());
 			sketchRect.anchorMin = mapRect.anchorMin;
 			sketchRect.anchorMax = mapRect.anchorMax;
 			sketchRect.position = mapRect.position;
@@ -273,8 +378,7 @@ namespace Cartographer {
 				texture = DataSerializer.Load(DataType.Sketch);
 				Plugin.Log.LogDebug("loaded image file");
 			} catch (Exception e) {
-				Plugin.Log.LogWarning("Couldn't load map data for this world. It might just not have been generated yet.");
-				Plugin.Log.LogDebug(e);
+				Plugin.Log.LogWarning($"Couldn't load map data for this world: {e.GetType().ToString()}. It might just not have been generated yet.");
 				Plugin.Log.LogWarning($"Creating blank sketch data with size {SketchSize}x{SketchSize}");
 				return ResetMapData();
 			}
