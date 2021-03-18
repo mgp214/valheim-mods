@@ -124,13 +124,9 @@ namespace Cartographer {
 			var colorSwatchGrpHlg = colorSwatchGrpObj.AddComponent<HorizontalLayoutGroup>();
 			colorSwatchGrpRect.SetParent(panelRect, false);
 
-			AddColorSwatch(colorSwatchGrpRect, Color.white, "white");
-			AddColorSwatch(colorSwatchGrpRect, Color.black, "black");
-			AddColorSwatch(colorSwatchGrpRect, Color.red, "red");
-			AddColorSwatch(colorSwatchGrpRect, Color.blue, "blue");
-			AddColorSwatch(colorSwatchGrpRect, Color.yellow, "yellow");
-			AddColorSwatch(colorSwatchGrpRect, Color.green, "green");
-
+			foreach (var color in Plugin.sketchColors) {
+				AddColorSwatch(colorSwatchGrpRect, color, ColorUtility.ToHtmlStringRGB(color));
+			}
 		}
 
 		private static void AddColorSwatch(RectTransform parent, Color color, string label) {
